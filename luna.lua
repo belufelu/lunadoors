@@ -1,420 +1,659 @@
--- New example script written by wally
--- You can suggest changes with a pull request or something
-
-local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+local repo = 'https://raw.githubusercontent.com/mstudio45/LinoriaLib/main/'
 
 local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
 local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
 local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+local Options = Library.Options
+local Toggles = Library.Toggles
 
-local Window = Library:CreateWindow({
-    -- Set Center to true if you want the menu to appear in the center
-    -- Set AutoShow to true if you want the menu to appear when it is created
-    -- Position and Size are also valid options here
-    -- but you do not need to define them unless you are changing them :)
+local friends = {}
+local LocalPlayer = game.Players.LocalPlayer
+local epiklistofpeople = {}
+local LXUser = {}
+local SendChat = game:GetService("TextChatService"):WaitForChild("TextChannels"):WaitForChild("RBXGeneral")
+-- detection thingy
+SendChat:SendAsync("", "Ineedtheepikrespond")
+local Detection = game:GetService("TextChatService").MessageReceived:Connect(function(yeah)
+    if yeah.Metadata == "usinglolhax" then
+        if game:GetService("Players")[yeah.TextSource.Name] ~= LocalPlayer.Name then
+            game:GetService("Players")[yeah.TextSource.Name]:SetAttribute("USINGLOLHAX", true)
+        end
+    elseif yeah.Metadata == "Ineedtheepikrespond" then
+        if game:GetService("Players")[yeah.TextSource.Name] ~= LocalPlayer.Name then
+            SendChat:SendAsync("", "usinglolhax")
+            game:GetService("Players")[yeah.TextSource.Name]:SetAttribute("USINGLOLHAX", true)
+        end
+    end
+end)
 
-    Title = 'Example menu',
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
-})
+local plr = game.Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid")
 
--- CALLBACK NOTE:
--- Passing in callback functions via the initial element parameters (i.e. Callback = function(Value)...) works
--- HOWEVER, using Toggles/Options.INDEX:OnChanged(function(Value) ... ) is the RECOMMENDED way to do this.
--- I strongly recommend decoupling UI code from logic code. i.e. Create your UI elements FIRST, and THEN setup :OnChanged functions later.
+if not fireproximityprompt then
+    OrionLib:MakeNotification({
+        Name = "Error!",
+        Content = "Your executor doesn't support fireproximityprompt!",
+        Image = "rbxassetid://4483345998",
+        Time = 5
+    })
+    error("no prox") 
+end
 
--- You do not have to set your tabs & groups up this way, just a prefrence.
-local Tabs = {
-    -- Creates a new tab titled Main
-    Main = Window:AddTab('Main'),
-    ['UI Settings'] = Window:AddTab('UI Settings'),
+-- ESP Function
+function esp(what,color,core,name)
+    local parts
+    
+    if typeof(what) == "Instance" then
+        if what:IsA("Model") then
+            parts = what:GetChildren()
+        elseif what:IsA("BasePart") then
+            parts = {what,table.unpack(what:GetChildren())}
+        end
+    elseif typeof(what) == "table" then
+        parts = what
+    end
+    
+    local bill
+    local boxes = {}
+    
+    for i,v in pairs(parts) do
+        if v:IsA("BasePart") then
+            local box = Instance.new("BoxHandleAdornment")
+            box.Size = v.Size
+            box.AlwaysOnTop = true
+            box.ZIndex = 1
+            box.AdornCullingMode = Enum.AdornCullingMode.Never
+            box.Color3 = color
+            box.Transparency = 0.7
+            box.Adornee = v
+            box.Parent = game.CoreGui
+            
+            table.insert(boxes,box)
+            
+            task.spawn(function()
+                while box do
+                    if box.Adornee == nil or not box.Adornee:IsDescendantOf(workspace) then
+                        box.Adornee = nil
+                        box.Visible = false
+                        box:Destroy()
+                    end  
+                    task.wait()
+                end
+            end)
+        end
+    end
+    
+    if core and name then
+        bill = Instance.new("BillboardGui",game.CoreGui)
+        bill.AlwaysOnTop = true
+        bill.Size = UDim2.new(0,400,0,100)
+        bill.Adornee = core
+        bill.MaxDistance = 2000
+        
+        local mid = Instance.new("Frame",bill)
+        mid.AnchorPoint = Vector2.new(0.5,0.5)
+        mid.BackgroundColor3 = color
+        mid.Size = UDim2.new(0,8,0,8)
+        mid.Position = UDim2.new(0.5,0,0.5,0)
+        Instance.new("UICorner",mid).CornerRadius = UDim.new(1,0)
+        Instance.new("UIStroke",mid)
+        
+        local txt = Instance.new("TextLabel",bill)
+        txt.AnchorPoint = Vector2.new(0.5,0.5)
+        txt.BackgroundTransparency = 1
+        txt.BackgroundColor3 = color
+        txt.TextColor3 = color
+        txt.Size = UDim2.new(1,0,0,20)
+        txt.Position = UDim2.new(0.5,0,0.7,0)
+        txt.Text = name
+        Instance.new("UIStroke",txt)
+        
+        task.spawn(function()
+            while bill do
+                if bill.Adornee == nil or not bill.Adornee:IsDescendantOf(workspace) then
+                    bill.Enabled = false
+                    bill.Adornee = nil
+                    bill:Destroy() 
+                end  
+                task.wait()
+            end
+        end)
+    end
+    
+    local ret = {}
+    
+    ret.delete = function()
+        for i,v in pairs(boxes) do
+            v.Adornee = nil
+            v.Visible = false
+            v:Destroy()
+        end
+        
+        if bill then
+            bill.Enabled = false
+            bill.Adornee = nil
+            bill:Destroy() 
+        end
+    end
+    
+    return ret 
+end
+
+
+
+local flags = {
+    speed = 16,
+    espdoors = false,
+    espkeys = false,
+    espitems = false,
+    espbooks = false,
+    esprush = false,
+    espchest = false,
+    esplocker = false,
+    esphumans = false,
+    espgold = false,
+    goldespvalue = 25,
+    hintrush = false,
+    light = false,
+    instapp = false,
+    noseek = false,
+    nogates = false,
+    nopuzzle = false,
+    noa90 = false,
+    noskeledoors = false,
+    noscreech = false,
+    getcode = false,
+    roomsnolock = false,
+    draweraura = false,
+    autorooms = false,
 }
 
--- Groupbox and Tabbox inherit the same functions
--- except Tabboxes you have to call the functions on a tab (Tabbox:AddTab(name))
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Groupbox')
+local esptable = {doors={},keys={},items={},books={},entity={},chests={},lockers={},people={},gold={}}
+local entitynames = {"RushMoving","AmbushMoving","Snare","A60","A120"}
 
--- We can also get our Main tab via the following code:
--- local LeftGroupBox = Window.Tabs.Main:AddLeftGroupbox('Groupbox')
+local NotifyLuna = loadstring(game:HttpGet("https://raw.githubusercontent.com/laagginq/ui-libraries/main/dxhooknotify/src.lua", true))()
 
--- Tabboxes are a tiny bit different, but here's a basic example:
---[[
+local Window = Library:CreateWindow({
 
-local TabBox = Tabs.Main:AddLeftTabbox() -- Add Tabbox on left side
+	Title = " LUNAHAX ┃"..LocalPlayer.Name,
+	Center = true,
+	AutoShow = true,
+	Resizable = true,
+	ShowCustomCursor = true,
+	NotifySide = "Left",
+	TabPadding = 8,
+	MenuFadeTime = 0.2
+})
 
-local Tab1 = TabBox:AddTab('Tab 1')
-local Tab2 = TabBox:AddTab('Tab 2')
+local Tabs = {
+	-- Creates a new tab titled Main
+	General = Window:AddTab('General'),
+    Visuals = Window:AddTab('Visuals'),
+	ESP = Window:AddTab('ESP'),
+	Exploits = Window:AddTab('Exploits'),
+	['Config'] = Window:AddTab('Config'),
+}
 
--- You can now call AddToggle, etc on the tabs you added to the Tabbox
-]]
+NotifyLuna:Notify("[LUNAHAX]","Welcome",5)
 
--- Groupbox:AddToggle
--- Arguments: Index, Options
+local LeftGroupBox = Tabs.ESP:AddLeftGroupbox('ESP')
+
 LeftGroupBox:AddToggle('MyToggle', {
-    Text = 'This is a toggle',
+    Text = 'Door ESP',
     Default = true, -- Default value (true / false)
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the toggle
-
+    Tooltip = '', -- Information shown when you hover over the toggle
     Callback = function(Value)
-        print('[cb] MyToggle changed to:', Value)
+flags.espdoors = Value
+        
+        if Value then
+            local function setup(room)
+                local door = room:WaitForChild("Door"):WaitForChild("Door")
+                
+                task.wait(0.1)
+                local h = esp(door,Color3.fromRGB(0,207,0),door,"Door")
+                table.insert(esptable.doors,h)
+                
+                door:WaitForChild("Open").Played:Connect(function()
+                    h.delete()
+                end)
+                
+                door.AncestryChanged:Connect(function()
+                    h.delete()
+                end)
+            end
+            
+            local addconnect
+            addconnect = workspace.CurrentRooms.ChildAdded:Connect(function(room)
+                setup(room)
+            end)
+            
+            for i,room in pairs(workspace.CurrentRooms:GetChildren()) do
+                if room:FindFirstChild("Assets") then
+                    setup(room) 
+                end
+            end
+            
+            repeat task.wait() until not flags.espdoors
+            addconnect:Disconnect()
+            
+            for i,v in pairs(esptable.doors) do
+                v.delete()
+            end 
+        end
     end
 })
 
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Key/Lever ESP',
+    Default = true, -- Default value (true / false)
+    Tooltip = '', -- Information shown when you hover over the toggle
+    Callback = function(Value)
+flags.espkeys = Value
+        
+        if Value then
+            local function check(v)
+                if v:IsA("Model") and (v.Name == "LeverForGate" or v.Name == "KeyObtain") then
+                    task.wait(0.1)
+                    if v.Name == "KeyObtain" then
+                        local hitbox = v:WaitForChild("Hitbox")
+                        local parts = hitbox:GetChildren()
+                        table.remove(parts,table.find(parts,hitbox:WaitForChild("PromptHitbox")))
+                        
+                        local h = esp(parts,Color3.fromRGB(90,255,40),hitbox,"Key")
+                        table.insert(esptable.keys,h)
+                        
+                    elseif v.Name == "LeverForGate" then
+                        local h = esp(v,Color3.fromRGB(0,0,255),v.PrimaryPart,"Lever")
+                        table.insert(esptable.keys,h)
+                        
+                        v.PrimaryPart:WaitForChild("SoundToPlay").Played:Connect(function()
+                            h.delete()
+                        end) 
+                    end
+                end
+            end
+            
+            local function setup(room)
+                local assets = room:WaitForChild("Assets")
+                
+                assets.DescendantAdded:Connect(function(v)
+                    check(v) 
+                end)
+                    
+                for i,v in pairs(assets:GetDescendants()) do
+                    check(v)
+                end 
+            end
+            
+            local addconnect
+            addconnect = workspace.CurrentRooms.ChildAdded:Connect(function(room)
+                setup(room)
+            end)
+            
+            for i,room in pairs(workspace.CurrentRooms:GetChildren()) do
+                if room:FindFirstChild("Assets") then
+                    setup(room) 
+                end
+            end
+            
+            repeat task.wait() until not flags.espkeys
+            addconnect:Disconnect()
+            
+            for i,v in pairs(esptable.keys) do
+                v.delete()
+            end 
+        end
+    end
+})
 
--- Fetching a toggle object for later use:
--- Toggles.MyToggle.Value
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Book/Breaker ESP',
+    Default = true, -- Default value (true / false)
+    Tooltip = '', -- Information shown when you hover over the toggle
+    Callback = function(Value)
+flags.espbooks = Value
+        
+        if Value then
+            local function check(v)
+                if v:IsA("Model") and (v.Name == "LiveHintBook" or v.Name == "LiveBreakerPolePickup") then
+                    task.wait(0.1)
+                    
+                    local h = esp(v,Color3.fromRGB(160,190,255),v.PrimaryPart,"Book")
+                    table.insert(esptable.books,h)
+                    
+                    v.AncestryChanged:Connect(function()
+                        if not v:IsDescendantOf(workspace) then
+                            h.delete() 
+                        end
+                    end)
+                end
+            end
+            
+            local function setup(room)
+                if room.Name == "50" or room.Name == "100" then
+                    room.DescendantAdded:Connect(function(v)
+                        check(v) 
+                    end)
+                    
+                    for i,v in pairs(room:GetDescendants()) do
+                        check(v)
+                    end
+                end
+            end
+            
+            local addconnect
+            addconnect = workspace.CurrentRooms.ChildAdded:Connect(function(room)
+                setup(room)
+            end)
+            
+            for i,room in pairs(workspace.CurrentRooms:GetChildren()) do
+                setup(room) 
+            end
+            
+            repeat task.wait() until not flags.espbooks
+            addconnect:Disconnect()
+            
+            for i,v in pairs(esptable.books) do
+                v.delete()
+            end 
+        end
+    end
+})
 
--- Toggles is a table added to getgenv() by the library
--- You index Toggles with the specified index, in this case it is 'MyToggle'
--- To get the state of the toggle you do toggle.Value
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Item ESP',
+    Default = true, -- Default value (true / false)
+    Tooltip = '', -- Information shown when you hover over the toggle
+    Callback = function(Value)
+flags.espitems = Value
+        
+        if Value then
+            local function check(v)
+                if v:IsA("Model") and (v:GetAttribute("Pickup") or v:GetAttribute("PropType")) then
+                    task.wait(0.1)
+                    
+                    local part = (v:FindFirstChild("Handle") or v:FindFirstChild("Prop"))
+                    local h = esp(part,Color3.fromRGB(160,190,255),part,v.Name)
+                    table.insert(esptable.items,h)
+                end
+            end
+            
+            local function setup(room)
+                local assets = room:WaitForChild("Assets")
+                
+                if assets then  
+                    local subaddcon
+                    subaddcon = assets.DescendantAdded:Connect(function(v)
+                        check(v) 
+                    end)
+                    
+                    for i,v in pairs(assets:GetDescendants()) do
+                        check(v)
+                    end
+                    
+                    task.spawn(function()
+                        repeat task.wait() until not flags.espitems
+                        subaddcon:Disconnect()  
+                    end) 
+                end 
+            end
+            
+            local addconnect
+            addconnect = workspace.CurrentRooms.ChildAdded:Connect(function(room)
+                setup(room)
+            end)
+            
+            for i,room in pairs(workspace.CurrentRooms:GetChildren()) do
+                if room:FindFirstChild("Assets") then
+                    setup(room) 
+                end
+            end
+            
+            repeat task.wait() until not flags.espitems
+            addconnect:Disconnect()
+            
+            for i,v in pairs(esptable.items) do
+                v.delete()
+            end 
+        end
+    end    
+})
 
--- Calls the passed function when the toggle is updated
-Toggles.MyToggle:OnChanged(function()
-    -- here we get our toggle object & then get its value
-    print('MyToggle changed to:', Toggles.MyToggle.Value)
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Entity ESP',
+    Default = true, -- Default value (true / false)
+    Tooltip = '', -- Information shown when you hover over the toggle
+    Callback = function(Value)
+flags.esprush = Value
+        
+        if Value then
+            local addconnect
+            addconnect = workspace.ChildAdded:Connect(function(v)
+                if table.find(entitynames,v.Name) then
+                    task.wait(0.1)
+                    
+                    local h = esp(v,Color3.fromRGB(255,25,25),v.PrimaryPart,v.Name:gsub("Moving",""))
+                    table.insert(esptable.entity,h)
+                end
+            end)
+            
+            local function setup(room)
+                if room.Name == "50" or room.Name == "100" then
+                    local figuresetup = room:WaitForChild("FigureSetup")
+                
+                    if figuresetup then
+                        local fig = figuresetup:WaitForChild("FigureRagdoll")
+                        task.wait(0.1)
+                        
+                        local h = esp(fig,Color3.fromRGB(255,25,25),fig.PrimaryPart,"Figure")
+                        table.insert(esptable.entity,h)
+                    end 
+                else
+                    local assets = room:WaitForChild("Assets")
+                    
+                    local function check(v)
+                        if v:IsA("Model") and table.find(entitynames,v.Name) then
+                            task.wait(0.1)
+                            
+                            local h = esp(v:WaitForChild("Base"),Color3.fromRGB(255,25,25),v.Base,"Snare")
+                            table.insert(esptable.entity,h)
+                        end
+                    end
+                    
+                    assets.DescendantAdded:Connect(function(v)
+                        check(v) 
+                    end)
+                    
+                    for i,v in pairs(assets:GetDescendants()) do
+                        check(v)
+                    end
+                end 
+            end
+            
+            local roomconnect
+            roomconnect = workspace.CurrentRooms.ChildAdded:Connect(function(room)
+                setup(room)
+            end)
+            
+            for i,v in pairs(workspace.CurrentRooms:GetChildren()) do
+                setup(v) 
+            end
+            
+            repeat task.wait() until not flags.esprush
+            addconnect:Disconnect()
+            roomconnect:Disconnect()
+            
+            for i,v in pairs(esptable.entity) do
+                v.delete()
+            end 
+        end
+    end
+})
+
+local LeftGroupBox = Tabs.General:AddLeftGroupbox('Functions')
+
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Fly',
+    Default = true, -- Default value (true / false)
+    Tooltip = 'Press F', -- Information shown when you hover over the toggle
+    Callback = function(Value)
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local flySpeed = 50 -- Speed at which the player flies
+
+
+local function startFlying()
+    flying = true
+    
+ 
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1000000, 1000000, 1000000)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = rootPart
+
+ 
+    local userInputService = game:GetService("UserInputService")
+    
+
+    while flying do
+        local moveDirection = Vector3.new(0, 0, 0)
+        
+        if userInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + workspace.CurrentCamera.CFrame.LookVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - workspace.CurrentCamera.CFrame.LookVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - workspace.CurrentCamera.CFrame.RightVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + workspace.CurrentCamera.CFrame.RightVector
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if userInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)
+        end
+        
+        bodyVelocity.Velocity = moveDirection * flySpeed
+        wait(0.1)
+    end
+end
+
+
+local function stopFlying()
+    flying = false
+    rootPart:FindFirstChild("BodyVelocity"):Destroy()
+end
+
+-- Toggle fly on and off with the "F" key
+game:GetService("UserInputService").InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.F then
+        if flying then
+            stopFlying()
+        else
+            startFlying()
+        end
+    end
 end)
-
--- This should print to the console: "My toggle state changed! New value: false"
-Toggles.MyToggle:SetValue(false)
-
--- 1/15/23
--- Deprecated old way of creating buttons in favor of using a table
--- Added DoubleClick button functionality
-
---[[
-    Groupbox:AddButton
-    Arguments: {
-        Text = string,
-        Func = function,
-        DoubleClick = boolean
-        Tooltip = string,
-    }
-
-    You can call :AddButton on a button to add a SubButton!
-]]
-
-local MyButton = LeftGroupBox:AddButton({
-    Text = 'Button',
-    Func = function()
-        print('You clicked a button!')
-    end,
-    DoubleClick = false,
-    Tooltip = 'This is the main button'
+    end
 })
 
-local MyButton2 = MyButton:AddButton({
-    Text = 'Sub button',
-    Func = function()
-        print('You clicked a sub button!')
-    end,
-    DoubleClick = true, -- You will have to click this button twice to trigger the callback
-    Tooltip = 'This is the sub button (double click me!)'
-})
+local LeftGroupBox = Tabs.Exploits:AddLeftGroupbox('Exploits')
 
---[[
-    NOTE: You can chain the button methods!
-    EXAMPLE:
-
-    LeftGroupBox:AddButton({ Text = 'Kill all', Func = Functions.KillAll, Tooltip = 'This will kill everyone in the game!' })
-        :AddButton({ Text = 'Kick all', Func = Functions.KickAll, Tooltip = 'This will kick everyone in the game!' })
-]]
-
--- Groupbox:AddLabel
--- Arguments: Text, DoesWrap
-LeftGroupBox:AddLabel('This is a label')
-LeftGroupBox:AddLabel('This is a label\n\nwhich wraps its text!', true)
-
--- Groupbox:AddDivider
--- Arguments: None
-LeftGroupBox:AddDivider()
-
---[[
-    Groupbox:AddSlider
-    Arguments: Idx, SliderOptions
-
-    SliderOptions: {
-        Text = string,
-        Default = number,
-        Min = number,
-        Max = number,
-        Suffix = string,
-        Rounding = number,
-        Compact = boolean,
-        HideMax = boolean,
-    }
-
-    Text, Default, Min, Max, Rounding must be specified.
-    Suffix is optional.
-    Rounding is the number of decimal places for precision.
-
-    Compact will hide the title label of the Slider
-
-    HideMax will only display the value instead of the value & max value of the slider
-    Compact will do the same thing
-]]
 LeftGroupBox:AddSlider('MySlider', {
-    Text = 'This is my slider!',
-    Default = 0,
-    Min = 0,
-    Max = 5,
+    Text = 'WalkSpeed Modifier',
+    Default = 16,
+    Min = 16,
+    Max = 30,
     Rounding = 1,
     Compact = false,
-
     Callback = function(Value)
-        print('[cb] MySlider was changed! New value:', Value)
+  local speed = Value
+
+while true do
+task.wait()
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
+end
     end
 })
 
--- Options is a table added to getgenv() by the library
--- You index Options with the specified index, in this case it is 'MySlider'
--- To get the value of the slider you do slider.Value
+local LeftGroupBox = Tabs.Visuals:AddLeftGroupbox('Visuals')
 
-local Number = Options.MySlider.Value
-Options.MySlider:OnChanged(function()
-    print('MySlider was changed! New value:', Options.MySlider.Value)
-end)
-
--- This should print to the console: "MySlider was changed! New value: 3"
-Options.MySlider:SetValue(3)
-
--- Groupbox:AddInput
--- Arguments: Idx, Info
-LeftGroupBox:AddInput('MyTextbox', {
-    Default = 'My textbox!',
-    Numeric = false, -- true / false, only allows numbers
-    Finished = false, -- true / false, only calls callback when you press enter
-
-    Text = 'This is a textbox',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the textbox
-
-    Placeholder = 'Placeholder text', -- placeholder text when the box is empty
-    -- MaxLength is also an option which is the max length of the text
-
+LeftGroupBox:AddSlider('MySlider', {
+    Text = 'Field of View',
+    Default = 70,
+    Min = 70,
+    Max = 120,
+    Rounding = 1,
+    Compact = false,
     Callback = function(Value)
-        print('[cb] Text updated. New text:', Value)
+    _G.FOVChangerConnection = _G.FOVChangerConnection or nil
+ 
+if _G.FOVChangerConnection then
+    _G.FOVChangerConnection:Disconnect()
+    _G.FOVChangerConnection = nil
+end
+ 
+local camera = workspace.Camera
+ 
+_G.FOVChangerConnection = camera:GetPropertyChangedSignal("FieldOfView"):Connect(function()
+    if camera.FieldOfView ~= Value then
+        camera.FieldOfView = Value
+    end
+end)
+ 
+camera.FieldOfView = Value
     end
 })
 
-Options.MyTextbox:OnChanged(function()
-    print('Text updated. New text:', Options.MyTextbox.Value)
-end)
-
--- Groupbox:AddDropdown
--- Arguments: Idx, Info
-
-LeftGroupBox:AddDropdown('MyDropdown', {
-    Values = { 'This', 'is', 'a', 'dropdown' },
-    Default = 1, -- number index of the value / string
-    Multi = false, -- true / false, allows multiple choices to be selected
-
-    Text = 'A dropdown',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the dropdown
-
+LeftGroupBox:AddToggle('MyToggle', {
+    Text = 'Ambience',
+    Default = true, -- Default value (true / false)
+    Tooltip = '', -- Information shown when you hover over the toggle
     Callback = function(Value)
-        print('[cb] Dropdown got changed. New value:', Value)
-    end
-})
-
-Options.MyDropdown:OnChanged(function()
-    print('Dropdown got changed. New value:', Options.MyDropdown.Value)
-end)
-
-Options.MyDropdown:SetValue('This')
-
--- Multi dropdowns
-LeftGroupBox:AddDropdown('MyMultiDropdown', {
-    -- Default is the numeric index (e.g. "This" would be 1 since it if first in the values list)
-    -- Default also accepts a string as well
-
-    -- Currently you can not set multiple values with a dropdown
-
-    Values = { 'This', 'is', 'a', 'dropdown' },
-    Default = 1,
-    Multi = true, -- true / false, allows multiple choices to be selected
-
-    Text = 'A dropdown',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the dropdown
-
-    Callback = function(Value)
-        print('[cb] Multi dropdown got changed:', Value)
-    end
-})
-
-Options.MyMultiDropdown:OnChanged(function()
-    -- print('Dropdown got changed. New value:', )
-    print('Multi dropdown got changed:')
-    for key, value in next, Options.MyMultiDropdown.Value do
-        print(key, value) -- should print something like This, true
-    end
-end)
-
-Options.MyMultiDropdown:SetValue({
-    This = true,
-    is = true,
-})
-
-LeftGroupBox:AddDropdown('MyPlayerDropdown', {
-    SpecialType = 'Player',
-    Text = 'A player dropdown',
-    Tooltip = 'This is a tooltip', -- Information shown when you hover over the dropdown
-
-    Callback = function(Value)
-        print('[cb] Player dropdown got changed:', Value)
-    end
-})
-
--- Label:AddColorPicker
--- Arguments: Idx, Info
-
--- You can also ColorPicker & KeyPicker to a Toggle as well
-
-LeftGroupBox:AddLabel('Color'):AddColorPicker('ColorPicker', {
-    Default = Color3.new(0, 1, 0), -- Bright green
-    Title = 'Some color', -- Optional. Allows you to have a custom color picker title (when you open it)
-    Transparency = 0, -- Optional. Enables transparency changing for this color picker (leave as nil to disable)
-
-    Callback = function(Value)
-        print('[cb] Color changed!', Value)
-    end
-})
-
-Options.ColorPicker:OnChanged(function()
-    print('Color changed!', Options.ColorPicker.Value)
-    print('Transparency changed!', Options.ColorPicker.Transparency)
-end)
-
-Options.ColorPicker:SetValueRGB(Color3.fromRGB(0, 255, 140))
-
--- Label:AddKeyPicker
--- Arguments: Idx, Info
-
-LeftGroupBox:AddLabel('Keybind'):AddKeyPicker('KeyPicker', {
-    -- SyncToggleState only works with toggles.
-    -- It allows you to make a keybind which has its state synced with its parent toggle
-
-    -- Example: Keybind which you use to toggle flyhack, etc.
-    -- Changing the toggle disables the keybind state and toggling the keybind switches the toggle state
-
-    Default = 'MB2', -- String as the name of the keybind (MB1, MB2 for mouse buttons)
-    SyncToggleState = false,
-
-
-    -- You can define custom Modes but I have never had a use for it.
-    Mode = 'Toggle', -- Modes: Always, Toggle, Hold
-
-    Text = 'Auto lockpick safes', -- Text to display in the keybind menu
-    NoUI = false, -- Set to true if you want to hide from the Keybind menu,
-
-    -- Occurs when the keybind is clicked, Value is `true`/`false`
-    Callback = function(Value)
-        print('[cb] Keybind clicked!', Value)
-    end,
-
-    -- Occurs when the keybind itself is changed, `New` is a KeyCode Enum OR a UserInputType Enum
-    ChangedCallback = function(New)
-        print('[cb] Keybind changed!', New)
-    end
-})
-
--- OnClick is only fired when you press the keybind and the mode is Toggle
--- Otherwise, you will have to use Keybind:GetState()
-Options.KeyPicker:OnClick(function()
-    print('Keybind clicked!', Options.KeyPicker:GetState())
-end)
-
-Options.KeyPicker:OnChanged(function()
-    print('Keybind changed!', Options.KeyPicker.Value)
-end)
-
-task.spawn(function()
-    while true do
-        wait(1)
-
-        -- example for checking if a keybind is being pressed
-        local state = Options.KeyPicker:GetState()
-        if state then
-            print('KeyPicker is being held down')
-        end
-
-        if Library.Unloaded then break end
-    end
-end)
-
-Options.KeyPicker:SetValue({ 'MB2', 'Toggle' }) -- Sets keybind to MB2, mode to Hold
-
--- Long text label to demonstrate UI scrolling behaviour.
-local LeftGroupBox2 = Tabs.Main:AddLeftGroupbox('Groupbox #2');
-LeftGroupBox2:AddLabel('Oh no...\nThis label spans multiple lines!\n\nWe\'re gonna run out of UI space...\nJust kidding! Scroll down!\n\n\nHello from below!', true)
-
-local TabBox = Tabs.Main:AddRightTabbox() -- Add Tabbox on right side
-
--- Anything we can do in a Groupbox, we can do in a Tabbox tab (AddToggle, AddSlider, AddLabel, etc etc...)
-local Tab1 = TabBox:AddTab('Tab 1')
-Tab1:AddToggle('Tab1Toggle', { Text = 'Tab1 Toggle' });
-
-local Tab2 = TabBox:AddTab('Tab 2')
-Tab2:AddToggle('Tab2Toggle', { Text = 'Tab2 Toggle' });
-
--- Dependency boxes let us control the visibility of UI elements depending on another UI elements state.
--- e.g. we have a 'Feature Enabled' toggle, and we only want to show that features sliders, dropdowns etc when it's enabled!
--- Dependency box example:
-local RightGroupbox = Tabs.Main:AddRightGroupbox('Groupbox #3');
-RightGroupbox:AddToggle('ControlToggle', { Text = 'Dependency box toggle' });
-
-local Depbox = RightGroupbox:AddDependencyBox();
-Depbox:AddToggle('DepboxToggle', { Text = 'Sub-dependency box toggle' });
-
--- We can also nest dependency boxes!
--- When we do this, our SupDepbox automatically relies on the visiblity of the Depbox - on top of whatever additional dependencies we set
-local SubDepbox = Depbox:AddDependencyBox();
-SubDepbox:AddSlider('DepboxSlider', { Text = 'Slider', Default = 50, Min = 0, Max = 100, Rounding = 0 });
-SubDepbox:AddDropdown('DepboxDropdown', { Text = 'Dropdown', Default = 1, Values = {'a', 'b', 'c'} });
-
-Depbox:SetupDependencies({
-    { Toggles.ControlToggle, true } -- We can also pass `false` if we only want our features to show when the toggle is off!
-});
-
-SubDepbox:SetupDependencies({
-    { Toggles.DepboxToggle, true }
-});
-
--- Library functions
--- Sets the watermark visibility
-Library:SetWatermarkVisibility(true)
-
--- Example of dynamically-updating watermark with common traits (fps and ping)
-local FrameTimer = tick()
-local FrameCounter = 0;
-local FPS = 60;
-
-local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
-    FrameCounter += 1;
-
-    if (tick() - FrameTimer) >= 1 then
-        FPS = FrameCounter;
-        FrameTimer = tick();
-        FrameCounter = 0;
+pcall(function()
+    local lighting = game:GetService("Lighting");
+    lighting.Ambient = Color3.fromRGB(206, 173, 144);
+    lighting.Brightness = 1;
+    lighting.FogEnd = 1e10;
+    for i, v in pairs(lighting:GetDescendants()) do
+        if v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("SunRaysEffect") then
+            v.Enabled = false;
+        end;
     end;
-
-    Library:SetWatermark(('LinoriaLib demo | %s fps | %s ms'):format(
-        math.floor(FPS),
-        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
-    ));
-end);
-
-Library.KeybindFrame.Visible = true; -- todo: add a function for this
-
-Library:OnUnload(function()
-    WatermarkConnection:Disconnect()
-
-    print('Unloaded!')
-    Library.Unloaded = true
+    lighting.Changed:Connect(function()
+        lighting.Ambient = Color3.fromRGB(255, 255, 255);
+        lighting.Brightness = 1;
+        lighting.FogEnd = 1e10;
+    end);
+    spawn(function()
+        local character = game:GetService("Players").LocalPlayer.Character;
+        while wait() do
+            repeat wait() until character ~= nil;
+            if not character.HumanoidRootPart:FindFirstChildWhichIsA("PointLight") then
+                local headlight = Instance.new("PointLight", character.HumanoidRootPart);
+                headlight.Brightness = 1;
+                headlight.Range = 60;
+            end;
+        end;
+    end);
 end)
+    end
+})
 
 -- UI Settings
-local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+local MenuGroup = Tabs['Config']:AddLeftGroupbox('Menu')
 
 -- I set NoUI so it does not show up in the keybinds menu
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
@@ -445,12 +684,13 @@ ThemeManager:SetFolder('MyScriptHub')
 SaveManager:SetFolder('MyScriptHub/specific-game')
 
 -- Builds our config menu on the right side of our tab
-SaveManager:BuildConfigSection(Tabs['UI Settings'])
+SaveManager:BuildConfigSection(Tabs['Config'])
 
 -- Builds our theme menu (with plenty of built in themes) on the left side
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
-ThemeManager:ApplyToTab(Tabs['UI Settings'])
+ThemeManager:ApplyToTab(Tabs['Config'])
 
 -- You can use the SaveManager:LoadAutoloadConfig() to load a config
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
+
