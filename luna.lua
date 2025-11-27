@@ -176,7 +176,7 @@ local NotifyLuna = loadstring(game:HttpGet("https://raw.githubusercontent.com/la
 
 local Window = Library:CreateWindow({
 
-	Title = " LUNAHAX ┃"..LocalPlayer.Name,
+	Title = " LUNAHAX ALPHA V1┃"..LocalPlayer.Name,
 	Center = true,
 	AutoShow = true,
 	Resizable = true,
